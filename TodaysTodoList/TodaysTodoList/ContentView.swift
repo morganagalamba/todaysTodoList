@@ -15,38 +15,65 @@ struct ContentView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
         animation: .default)
     private var items: FetchedResults<Item>
-
+    @State private var newTask: String = ""
+    @State private var showAlert: Bool = false
+    
     var body: some View {
         NavigationView {
             List {
                 ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+                    HStack{
+                        Button(action: {
+                            item.isCompleted.toggle()
+                        }){
+                            if item.isCompleted {
+                                Label("", systemImage: "checkmark.circle.fill")
+                                    .foregroundColor(.purple)
+                            }else {
+                                Label("",systemImage: "circle")
+                                    .foregroundColor(.purple)
+                            }
+                        }
+                        Text(item.name ?? "tarefa sem nome")
                     }
+                    
                 }
                 .onDelete(perform: deleteItems)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                    HStack{
+                        Button(action: addItem) {
+                            Label("Add Item", systemImage: "plus")
+                                .foregroundColor(.purple)
+                        }.alert(isPresented: $showAlert){
+                            Alert(title: Text("Tarefa sem nome"), message: Text("Não foi possível criar uma nova tarefa devido a falta do nome"), dismissButton: .default(Text("Ok")))
+                        }
+                        EditButton()
+                            .foregroundColor(.purple)
                     }
+                    
+                }
+                ToolbarItem(placement: .navigationBarLeading){
+                    TextField("Nova tarefa" , text: $newTask )
                 }
             }
-            Text("Select an item")
+            .navigationTitle("Tarefas para fazer:")
         }
     }
 
     private func addItem() {
         withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
+            if newTask != "" {
+                let newItem = Item(context: viewContext)
+                newItem.timestamp = Date()
+                newItem.name = newTask
+                newTask = ""
+            } else {
+                showAlert = true
+            }
+            
+            
             do {
                 try viewContext.save()
             } catch {
